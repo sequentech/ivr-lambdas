@@ -25,8 +25,13 @@ The IVR is just a wrapper around Sequent Voting Platform. It uses [AWS Connect]
 to generate a simple IVR system for telephone voting, and requires the following
 two AWS lambda functions with the Sequent backend API to work:
 1. `authenticate_voter` lambda, that receives the credentials that the voter
-provided telephonically and authenticates it, returning the credential bearer
-token. This token will be stored in a [contact attribute]
+provided telephonically and authenticates it, returning the bearer token
+credential. This token will be stored in a [contact attribute] to be used later
+when casting the vote.
+2. `record_vote` lambda, that receives the intention of the vote that the voter
+recorded using the telephone together with the bearer token credential obtained
+from the previous call to the `authenticate_voter` lambda, and then encrypts
+the vote and sends it to the ballot box.
 
 ## Development environment
 
@@ -61,6 +66,31 @@ You can build the lambdas using [cargo-lambda] as mentioned in the
 ```bash
 cargo lambda build --release --arm64
 ```
+
+## Testing lambdas locally
+
+You can test the lambda functions locally. For example, you can run the
+`authenticate_voter` lambda by executing in one terminal:
+
+```bash
+export LOGIN_URL=test_url
+export USER_ID_KEY=user_id_key
+export VOTER_PIN_KEY=voter_pin_key
+cargo lambda watch -v --print-traces -- -C authenticate_voter
+```
+
+And then in another terminal:
+
+```bash
+cargo lambda invoke --data-file authenticate_voter/test/test_data_1.json
+```
+
+Note that:
+1. Because of the limitations of the interaction of cargo-watch and cargo
+workspaces, the lambda will be rebuild in the first invocation of the lambda.
+2. This is just an example of how to invoke the lambda, but this example will
+fail as it requires the proper configuration of the lambda environment
+variables.
 
 ## Updating Cargo.toml
 
