@@ -6,7 +6,6 @@ extern crate chrono;
 use aws_lambda_events::event::connect::ConnectEvent;
 use lambda_runtime::{run, service_fn, Error, LambdaEvent};
 use std::env;
-use reqwest;
 use std::collections::HashMap;
 use serde_json::{json, Value};
 use serde::{Deserialize, Serialize};
@@ -16,6 +15,9 @@ use strand::backend::num_bigint::{BigintCtx, P2048};
 use strand::elgamal::PublicKey;
 use chrono::prelude::*;
 use tracing::{info, debug};
+
+use oxhttp::Client;
+use oxhttp::model::{Request, Method, Status, HeaderName};
 
 #[derive(Serialize, Deserialize)]
 pub struct PublicKeyStrings {
@@ -122,19 +124,22 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>) -> Result<Value, Err
             plaintext_proof_struct
         ]
     };
-    info!("encrypted_ballot = {}", serde_json::to_string(&encrypted_ballot)?);
+    let encrypted_ballot_str: String = serde_json::to_string(&encrypted_ballot)?;
+    info!("encrypted_ballot = {}", &encrypted_ballot_str);
 
-    let client = reqwest::Client::new();
-    let response = client.post(record_vote_url)
-            .header("Authorization", auth_token)
-            .json(&encrypted_ballot)
-            .send()
-            .await?;
+    let client = Client::new();
+    let response = client.request(
+        Request::builder(Method::POST, record_vote_url.parse()?)
+            .with_header(HeaderName::AUTHORIZATION, auth_token.as_str())?
+            .with_body(encrypted_ballot_str)
+    )?;
+
+    assert_eq!(response.status(), Status::OK);
+    let body = response.into_body().to_string()?;
 
     // Extract some useful information from the request
     Ok(json!({
-        "statusCode": response.status().as_str(),
-        "body": response.text().await?
+        "body": body
     }))
 }
 

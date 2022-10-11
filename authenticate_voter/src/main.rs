@@ -47,18 +47,18 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>) -> Result<Value, Err
     data.insert(user_id_key, user_id_value);
     data.insert(voter_pin_key, voter_pin_value);
 
-
     let client = Client::new();
     let response = client.request(
         Request::builder(
             Method::POST,
-            login_url.parse().unwrap()
-        ).build()
-    ).unwrap();
+            login_url.parse()?
+        )
+        .with_body(serde_json::to_string(&data)?)
+    )?;
     
     assert_eq!(response.status(), Status::OK);
 
-    let body = response.into_body().to_string().unwrap();
+    let body = response.into_body().to_string()?;
     let body_value: Value = serde_json::from_str(&body)?;
 
     // Extract some useful information from the request
