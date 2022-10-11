@@ -2,7 +2,8 @@
     "Details": {
         "ContactData": {
             "Attributes": {
-  		       "exampleAttributeKey1": "exampleAttributeValue1"
+  		       "VoterUserId": "100",
+               "VoterPIN": "22345678"
   		      },
             "Channel": "VOICE",
             "ContactId": "4a573372-1f28-4e26-b97b-XXXXXXXXXXX",
@@ -23,8 +24,9 @@
                 "Type": "TELEPHONE_NUMBER"
             }
         },
-        "Parameters": {"exampleParameterKey1": "exampleParameterValue1",
-  		       "exampleParameterKey2": "exampleParameterValue2"
+        "Parameters": {
+            "exampleParameterKey1": "exampleParameterValue1",
+            "exampleParameterKey2": "exampleParameterValue2"
         }
     },
     "Name": "ContactFlowEvent"

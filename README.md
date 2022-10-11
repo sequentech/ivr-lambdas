@@ -92,6 +92,24 @@ workspaces, the lambda will be rebuild in the first invocation of the lambda.
 fail as it requires the proper configuration of the lambda environment
 variables.
 
+## Deploying
+
+Deployment of the lambdas can be performed manually using `cargo-lambda`. For
+reference, please review the documentation of the [cargo lambda deploy command].
+
+In the `deployment-skel` directory you have a script `deploy.sh` that you can
+use as a base for deployment. It's designed so that you copy the directory to
+`deploy/` with `cp -r deployment-skel deployment` and then change the
+configuration in that file and the others in the directory to adapt to the
+specifics of your deployment.
+
+Once that is done, you will be able to deploy the IVR lambda functions by simply
+executing:
+
+```bash
+./deployment/deploy.sh
+```
+
 ## Updating Cargo.toml
 
 Use the following [cargo-edit] command to upgrade dependencies to latest
@@ -132,3 +150,4 @@ Cargo.lock.copy` and commit the changes.
 [install Nix]: https://nixos.org/
 [cargo-lambda]: https://www.cargo-lambda.info/
 [Rust runtime for AWS Lambda]: https://github.com/awslabs/aws-lambda-rust-runtime#12-build-your-lambda-functions
+[cargo lambda deploy command]: https://www.cargo-lambda.info/commands/deploy.html#environment-variables

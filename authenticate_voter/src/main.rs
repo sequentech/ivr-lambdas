@@ -1,10 +1,15 @@
+// SPDX-FileCopyrightText: 2022 Eduardo Robles <edu@sequentech.io>
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 use aws_lambda_events::event::connect::ConnectEvent;
 use lambda_runtime::{run, service_fn, Error, LambdaEvent};
 use std::env;
-use reqwest;
 use std::collections::HashMap;
 use serde_json::{json, Value};
 use tracing::info;
+use oxhttp::Client;
+use oxhttp::model::{Request, Method, Status};
 
 /// This is the main body for the function.
 /// Write your code inside it.
@@ -42,16 +47,23 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>) -> Result<Value, Err
     data.insert(user_id_key, user_id_value);
     data.insert(voter_pin_key, voter_pin_value);
 
-    let client = reqwest::Client::new();
-    let response = client.post(login_url)
-            .json(&data)
-            .send()
-            .await?;
+
+    let client = Client::new();
+    let response = client.request(
+        Request::builder(
+            Method::POST,
+            login_url.parse().unwrap()
+        ).build()
+    ).unwrap();
+    
+    assert_eq!(response.status(), Status::OK);
+
+    let body = response.into_body().to_string().unwrap();
+    let body_value: Value = serde_json::from_str(&body)?;
 
     // Extract some useful information from the request
     Ok(json!({
-        "statusCode": response.status().as_str(),
-        "body": response.text().await?
+        "AuthToken": body_value["auth-token"]
     }))
 }
 
@@ -65,7 +77,7 @@ async fn main() -> Result<(), Error> {
         .without_time()
         .init();
 
-    info!("starting up lambda");
+    info!("starting up authenticate_voter lambda");
 
     run(service_fn(function_handler)).await
 }
