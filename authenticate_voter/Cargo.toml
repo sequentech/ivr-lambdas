@@ -28,3 +28,5 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 
 [dev-dependencies]
 tokio = "1.21.2"
+httpmock = "0.6.6"
+serial_test = "0.9.0"

@@ -92,6 +92,14 @@ workspaces, the lambda will be rebuild in the first invocation of the lambda.
 fail as it requires the proper configuration of the lambda environment
 variables.
 
+## Running unit tests
+
+You can run unit tests with:
+
+```bash
+cargo test
+```
+
 ## Lambda Deployment
 
 Deployment of the lambdas can be performed manually using `cargo-lambda`. For

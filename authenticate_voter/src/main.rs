@@ -110,27 +110,54 @@ mod tests {
     use std::collections::HashMap;
     use std::env;
     use std::include_str;
+    use serde_json::Value;
     use tokio;
+    use lambda_runtime::Error;
+    use serial_test::serial;
     use aws_lambda_events::event::connect::ConnectEvent;
+    use httpmock::prelude::*;
+    use httpmock::Mock;
     use crate::function_handler;
 
-    // Configures environment variables
+    // Set environment variables. If any of the values is an empty string,
+    // unsets the variable. 
+    //
+    // IMPORTANT: env vars are set for the whole executable, so changing this
+    // might create run conditions on any function that depends on env
+    // variables.
     fn set_env_vars(env_vars: &HashMap<&str, &str>) {
         for (env_var_name, env_var_value) in env_vars.iter() {
-            env::set_var(env_var_name, env_var_value);
+            if env_var_value.len() > 0 {
+                env::set_var(env_var_name, env_var_value);
+            } else {
+                env::remove_var(env_var_name);
+            }
         }
     }
 
     // default init function for unit tests
-    fn init(override_env_vars: Option<HashMap<&str, &str>>) {
+    fn init<'a>(
+        server: &'a MockServer,
+        override_env_vars: Option<HashMap<&str, &str>>,
+        response: &str
+    ) -> Mock<'a>
+    {
+        // Create a mock on the server.
+        let auth_voter_path = "/auth_voter";
+        let login_url = server.base_url() + auth_voter_path;
+        let hello_mock = server.mock(|when, then| {
+            when.method(POST)
+                .path(auth_voter_path);
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(response);
+        });
+
         let default_env_vars: HashMap<&str, &str> = HashMap::from([
             ("TRACING_LEVEL", "debug"),
-            (
-                "LOGIN_URL",
-                "http://127.0.0.1:8000/authenticate_voter.response_200.json"
-            ),
             ("USER_ID_KEY", "user-id"),
-            ("VOTER_PIN_KEY", "code")
+            ("VOTER_PIN_KEY", "code"),
+            ("LOGIN_URL", login_url.as_str())
         ]);
         let override_env_vars_val = override_env_vars
             .unwrap_or(Default::default());
@@ -139,17 +166,13 @@ mod tests {
             .chain(override_env_vars_val)
             .collect();
         set_env_vars(&env_vars);
+
+        return hello_mock;
     }
 
-    // using #[tokio::test] instead of just #[test] to be able to call async
-    // function in the test
-    #[tokio::test]
-    async fn authentication_success() {
-        init(None);
-
-        let input: ConnectEvent = serde_json::from_str(
-            include_str!("../test/test_data_1.json")
-        ).unwrap();
+    // calls the crate's lambda
+    async fn call_lambda(connect_event_str: &str) -> Result<Value, Error> {
+        let input: ConnectEvent = serde_json::from_str(connect_event_str)?;
         let context = lambda_runtime::Context::default();
         let event = lambda_runtime::LambdaEvent::new(input, context);
         let (connect_event, _) = event.clone().into_parts();
@@ -158,8 +181,101 @@ mod tests {
             serde_json::to_string(&connect_event).unwrap_or(Default::default())
         );
         let event_result = function_handler(event)
+            .await;
+        return event_result;
+    }
+
+    // using #[tokio::test] instead of just #[test] to be able to call async
+    // function in the test
+    #[tokio::test]
+    // we apply serial because we are changing the env vars for the whole
+    // executable and other test function would do the same, so we need to
+    // prevent a run condition
+    #[serial]
+    // Simulates how an authentication success should happen
+    async fn authentication_success() {
+        let server = MockServer::start();
+        let auth_mock = init(
+            &server,
+            Default::default(),
+            include_str!(
+                "../test/mock_backend/authenticate_voter.response_200.json"
+            )
+        );
+
+        let event_result = call_lambda(
+            include_str!("../test/test_data_1.json")
+        )
             .await
             .expect("failed to handle event");
+
+        auth_mock.assert();
         assert_eq!(event_result["AuthToken"], "mock-token");
+    }
+
+    // should panic with LOGIN_URL env var not set
+    #[tokio::test]
+    #[should_panic]
+    #[serial]
+    async fn unset_login_url_env_var() {
+        let server = MockServer::start();
+        init(
+            &server,
+            Some(HashMap::from([
+                ("LOGIN_URL", "")
+            ])),
+            include_str!(
+                "../test/mock_backend/authenticate_voter.response_200.json"
+            )
+        );
+        call_lambda(
+            include_str!("../test/test_data_1.json")
+        )
+            .await
+            .expect("failed to handle event");
+    }
+
+    // should panic with VOTER_PIN_KEY env var not set
+    #[tokio::test]
+    #[should_panic]
+    #[serial]
+    async fn unset_voter_pin_key_env_var() {
+        let server = MockServer::start();
+        init(
+            &server,
+            Some(HashMap::from([
+                ("VOTER_PIN_KEY", "")
+            ])),
+            include_str!(
+                "../test/mock_backend/authenticate_voter.response_200.json"
+            )
+        );
+        call_lambda(
+            include_str!("../test/test_data_1.json")
+        )
+            .await
+            .expect("failed to handle event");
+    }
+
+    // should panic with USER_ID_KEY env var not set
+    #[tokio::test]
+    #[should_panic]
+    #[serial]
+    async fn unset_user_id_key_env_var() {
+        let server = MockServer::start();
+        init(
+            &server,
+            Some(HashMap::from([
+                ("USER_ID_KEY", "")
+            ])),
+            include_str!(
+                "../test/mock_backend/authenticate_voter.response_200.json"
+            )
+        );
+        call_lambda(
+            include_str!("../test/test_data_1.json")
+        )
+            .await
+            .expect("failed to handle event");
     }
 }
