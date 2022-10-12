@@ -74,14 +74,18 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>)
     event!(Level::DEBUG, body);
     let body_value: Value = serde_json::from_str(&body)?;
 
-    assert_eq!(status, Status::OK);
-    let ret_value = json!({
-        "AuthToken": body_value["auth-token"]
-    });
-    event!(Level::DEBUG, ret_value = ret_value.to_string());
-
-    // Return the auth_token
-    Ok(ret_value)
+    match status {
+        Status::OK => {
+            let ret_value = json!({
+                "AuthToken": body_value["auth-token"]
+            });
+            event!(Level::DEBUG, ret_value = ret_value.to_string());
+        
+            // Return the auth_token
+            Ok(ret_value)
+        },
+        _ => Err("invalid-status".into())
+    }    
 }
 
 #[tokio::main]
@@ -139,15 +143,17 @@ mod tests {
     fn init<'a>(
         server: &'a MockServer,
         override_env_vars: Option<HashMap<&str, &str>>,
+        auth_voter_path: Option<&str>,
         response: &str
     ) -> Mock<'a>
     {
         // Create a mock on the server.
-        let auth_voter_path = "/auth_voter";
+        let auth_voter_path = auth_voter_path
+            .unwrap_or("/authentication-success");
         let login_url = server.base_url() + auth_voter_path;
-        let hello_mock = server.mock(|when, then| {
+        let auth_mock = server.mock(|when, then| {
             when.method(POST)
-                .path(auth_voter_path);
+                .path("/authentication-success");
             then.status(200)
                 .header("content-type", "application/json")
                 .body(response);
@@ -167,7 +173,7 @@ mod tests {
             .collect();
         set_env_vars(&env_vars);
 
-        return hello_mock;
+        return auth_mock;
     }
 
     // calls the crate's lambda
@@ -198,19 +204,46 @@ mod tests {
         let auth_mock = init(
             &server,
             Default::default(),
-            include_str!(
-                "../test/mock_backend/authenticate_voter.response_200.json"
-            )
+            None,
+            include_str!("../test/mock_backend/authentication_success.json")
         );
 
-        let event_result = call_lambda(
-            include_str!("../test/test_data_1.json")
-        )
+        let event_result = call_lambda(include_str!("../test/test_data_1.json"))
             .await
             .expect("failed to handle event");
 
         auth_mock.assert();
         assert_eq!(event_result["AuthToken"], "mock-token");
+    }
+
+    // simulates an authentication failure
+    #[tokio::test]
+    #[serial]
+    async fn authentication_failure() {
+        let server = MockServer::start();
+        let auth_voter_path = "/authenticate-failure";
+        init(
+            &server,
+            Default::default(),
+            Some(auth_voter_path),
+            include_str!(
+                "../test/mock_backend/authentication_success.json"
+            )
+        );
+        let auth_error_mock = server.mock(|when, then| {
+            when.method(POST)
+                .path(auth_voter_path);
+            then.status(400)
+                .header("content-type", "application/json")
+                .body(include_str!(
+                    "../test/mock_backend/authentication_failure.json"
+                ));
+        });
+        let event_result = call_lambda(include_str!("../test/test_data_1.json"))
+            .await;
+        auth_error_mock.assert();
+        event_result
+            .expect_err("authentication succeeded when it should have failed");
     }
 
     // should panic with LOGIN_URL env var not set
@@ -224,13 +257,10 @@ mod tests {
             Some(HashMap::from([
                 ("LOGIN_URL", "")
             ])),
-            include_str!(
-                "../test/mock_backend/authenticate_voter.response_200.json"
-            )
+            None,
+            include_str!("../test/mock_backend/authentication_success.json")
         );
-        call_lambda(
-            include_str!("../test/test_data_1.json")
-        )
+        call_lambda(include_str!("../test/test_data_1.json"))
             .await
             .expect("failed to handle event");
     }
@@ -246,13 +276,10 @@ mod tests {
             Some(HashMap::from([
                 ("VOTER_PIN_KEY", "")
             ])),
-            include_str!(
-                "../test/mock_backend/authenticate_voter.response_200.json"
-            )
+            None,
+            include_str!("../test/mock_backend/authentication_success.json")
         );
-        call_lambda(
-            include_str!("../test/test_data_1.json")
-        )
+        call_lambda(include_str!("../test/test_data_1.json"))
             .await
             .expect("failed to handle event");
     }
@@ -268,13 +295,10 @@ mod tests {
             Some(HashMap::from([
                 ("USER_ID_KEY", "")
             ])),
-            include_str!(
-                "../test/mock_backend/authenticate_voter.response_200.json"
-            )
+            None,
+            include_str!("../test/mock_backend/authentication_success.json")
         );
-        call_lambda(
-            include_str!("../test/test_data_1.json")
-        )
+        call_lambda(include_str!("../test/test_data_1.json"))
             .await
             .expect("failed to handle event");
     }
