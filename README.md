@@ -92,7 +92,7 @@ workspaces, the lambda will be rebuild in the first invocation of the lambda.
 fail as it requires the proper configuration of the lambda environment
 variables.
 
-## Deploying
+## Lambda Deployment
 
 Deployment of the lambdas can be performed manually using `cargo-lambda`. For
 reference, please review the documentation of the [cargo lambda deploy command].
@@ -109,6 +109,27 @@ executing:
 ```bash
 ./deployment/deploy.sh
 ```
+
+## Connecting to Sequent Telephone Voting in AWS Connect
+
+The purpose of these lambda functions is to be used as part of Sequent Telephone
+Voting Platform. The AWS Connect "Sequent Telephone Voting" Contact Flow
+includes calls to the lambda functions. However, for that to work it's required
+that:
+1. The lambda functions are deployed in the same region as the AWS Contact Flow.
+2. [Add the lambda functions to the AWS Connect instance].
+
+## Debugging
+
+Once deployed, AWS Lambda function logs are stored in [AWS CloudWatch] in the
+AWS Console. You can access those logs in `Log Groups` section. Fro example, the
+logs for the `authenticate_voter` lambda will be stored in the
+`/aws/lambda/authenticate_voter` log group.
+
+Depending on the TRACING_LEVEL set in the env_vars used for the deployment (for
+example inside the `deployment/authenticate_voter.env_vars` file for the
+`authenticate_voter` lambda), the logs will be more or less verbose. The default
+level is `info`, and you can change it to `debug` to have a more verbose output.
 
 ## Updating Cargo.toml
 
@@ -151,3 +172,5 @@ Cargo.lock.copy` and commit the changes.
 [cargo-lambda]: https://www.cargo-lambda.info/
 [Rust runtime for AWS Lambda]: https://github.com/awslabs/aws-lambda-rust-runtime#12-build-your-lambda-functions
 [cargo lambda deploy command]: https://www.cargo-lambda.info/commands/deploy.html#environment-variables
+[Add the lambda functions to the AWS Connect instance]: https://docs.aws.amazon.com/connect/latest/adminguide/connect-lambda-functions.html#add-lambda-function
+[AWS CloudWatch]: https://ca-central-1.console.aws.amazon.com/cloudwatch/home?region=ca-central-1#logsV2:log-groups
