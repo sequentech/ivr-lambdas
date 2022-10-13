@@ -1,0 +1,30 @@
+{
+    "Details": {
+        "ContactData": {
+            "Attributes": {
+  		       "Vote": "yes",
+               "AuthToken": "khmac:///sha-256;c4ba96310ea7474b4ee2e84b00eaf412786816ea7d3713af866dab67c3201668/4cf53604330bab6a6179de2e:AuthEvent:17:vote:1665653516"
+  		      },
+            "Channel": "VOICE",
+            "ContactId": "4a573372-1f28-4e26-b97b-XXXXXXXXXXX",
+            "CustomerEndpoint": {
+                "Address": "+1234567890",
+                "Type": "TELEPHONE_NUMBER"
+            },
+            "InitialContactId": "4a573372-1f28-4e26-b97b-XXXXXXXXXXX",
+            "InitiationMethod": "INBOUND | OUTBOUND | TRANSFER | CALLBACK",
+            "InstanceARN": "arn:aws:connect:aws-region:1234567890:instance/c8c0e68d-2200-4265-82c0-XXXXXXXXXX",
+            "PreviousContactId": "4a573372-1f28-4e26-b97b-XXXXXXXXXXX",
+            "Queue": null,
+            "SystemEndpoint": {
+                "Address": "+1234567890",
+                "Type": "TELEPHONE_NUMBER"
+            }
+        },
+        "Parameters": {
+            "exampleParameterKey1": "exampleParameterValue1",
+            "exampleParameterKey2": "exampleParameterValue2"
+        }
+    },
+    "Name": "ContactFlowEvent"
+}

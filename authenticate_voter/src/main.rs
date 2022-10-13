@@ -8,7 +8,7 @@ use std::env;
 use std::str::FromStr;
 use std::collections::HashMap;
 use serde_json::{json, Value};
-use tracing::{event, Level, instrument};
+use tracing::{event, Level};
 use oxhttp::Client;
 use oxhttp::model::{Request, Method, Status};
 
@@ -17,7 +17,6 @@ use oxhttp::model::{Request, Method, Status};
 /// There are some code example in the following URLs:
 /// - https://github.com/awslabs/aws-lambda-rust-runtime/tree/main/examples
 /// - https://github.com/aws-samples/serverless-rust-demo/
-#[instrument]
 async fn function_handler(event: LambdaEvent<ConnectEvent>)
     -> Result<Value, Error>
 {
@@ -68,21 +67,27 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>)
     )?;
 
     let status = response.status();
-    event!(Level::INFO, status = status.to_string());
+    event!(Level::INFO, request_response_status = status.to_string());
 
     let body = response.into_body().to_string()?;
-    event!(Level::DEBUG, body);
+    event!(Level::DEBUG, request_response_body = body);
     let body_value: Value = serde_json::from_str(&body)?;
 
     match status {
         Status::OK => {
-            let ret_value = json!({
-                "AuthToken": body_value["auth-token"]
-            });
-            event!(Level::DEBUG, ret_value = ret_value.to_string());
-        
-            // Return the auth_token
-            Ok(ret_value)
+            let vote_permission_token = &body_value["vote-permission-token"];
+            let vote_permission_token_str = vote_permission_token.to_string();
+            event!(Level::DEBUG, vote_permission_token_str);
+
+            if vote_permission_token_str.len() > 0 {                
+                let ret_value = json!({"AuthToken": vote_permission_token});
+                event!(Level::DEBUG, ret_value = ret_value.to_string());
+
+                // Return the vote_permission_token
+                Ok(ret_value)
+            } else {
+                Err("empty-vote-permission-token".into())
+            }
         },
         _ => Err("invalid-status".into())
     }    
@@ -215,7 +220,7 @@ mod tests {
             .expect("failed to handle event");
 
         auth_mock.assert();
-        assert_eq!(event_result["AuthToken"], "mock-token");
+        assert_eq!(event_result["AuthToken"], "khmac:///sha-256;c4ba96310ea7474b4ee2e84b00eaf412786816ea7d3713af866dab67c3201668/4cf53604330bab6a6179de2e:AuthEvent:17:vote:1665653516");
     }
 
     // simulates an authentication failure because input data is invalid

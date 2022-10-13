@@ -3,7 +3,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-
 cd /workspaces/ivr-lambdas
 export REGION=ca-central-1
 export AWS_SHARED_CREDENTIALS_FILE=/workspaces/ivr-lambdas/deployment/aws-credentials
@@ -21,6 +20,6 @@ cargo lambda deploy \
 cargo lambda deploy \
     --verbose \
     --region $REGION \
-    --env-file $AUTHENTICATE_VOTER_ENV_FILE \
+    --env-file $RECORD_VOTE_ENV_FILE \
     --iam-role $IAM_ROLE \
     record_vote

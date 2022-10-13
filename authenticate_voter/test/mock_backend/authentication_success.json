@@ -1,3 +1,3 @@
 {
-    "auth-token": "mock-token"
+    "vote-permission-token": "khmac:///sha-256;c4ba96310ea7474b4ee2e84b00eaf412786816ea7d3713af866dab67c3201668/4cf53604330bab6a6179de2e:AuthEvent:17:vote:1665653516"
 }

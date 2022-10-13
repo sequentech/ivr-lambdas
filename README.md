@@ -60,8 +60,8 @@ After you have installed Nix, enter the development environment with:
 nix develop
 ```
 
-You can build the lambdas using [cargo-lambda] as mentioned in the
-[Rust runtime for AWS Lambda]:
+You can build the lambdas for deployment using [cargo-lambda] as mentioned in
+the [Rust runtime for AWS Lambda]:
 
 ```bash
 cargo lambda build --release --arm64
