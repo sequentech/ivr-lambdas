@@ -115,6 +115,7 @@ mod tests {
     use std::env;
     use std::include_str;
     use serde_json::Value;
+    use serde_json::json;
     use tokio;
     use lambda_runtime::Error;
     use serial_test::serial;
@@ -153,7 +154,8 @@ mod tests {
         let login_url = server.base_url() + auth_voter_path;
         let auth_mock = server.mock(|when, then| {
             when.method(POST)
-                .path("/authentication-success");
+                .path("/authentication-success")
+                .json_body(json!({ "user-id": "100", "code": "22345678" }));
             then.status(200)
                 .header("content-type", "application/json")
                 .body(response);
@@ -216,10 +218,29 @@ mod tests {
         assert_eq!(event_result["AuthToken"], "mock-token");
     }
 
-    // simulates an authentication failure
+    // simulates an authentication failure because input data is invalid
     #[tokio::test]
     #[serial]
-    async fn authentication_failure() {
+    async fn authentication_failure1() {
+        let server = MockServer::start();
+        let auth_mock = init(
+            &server,
+            Default::default(),
+            None,
+            include_str!("../test/mock_backend/authentication_success.json")
+        );
+
+        call_lambda(include_str!("../test/test_data_2.json"))
+            .await
+            .expect_err("authentication succeeded when it should have failed");
+
+        auth_mock.assert_hits(0);
+    }
+
+    // simulates an authentication failure (independent of incoming data)
+    #[tokio::test]
+    #[serial]
+    async fn authentication_failure2() {
         let server = MockServer::start();
         let auth_voter_path = "/authenticate-failure";
         init(
