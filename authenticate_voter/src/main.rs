@@ -128,6 +128,7 @@ mod tests {
     use httpmock::prelude::*;
     use httpmock::Mock;
     use crate::function_handler;
+    use num_bigint::BigUint;
 
     // Set environment variables. If any of the values is an empty string,
     // unsets the variable. 
@@ -196,6 +197,16 @@ mod tests {
         let event_result = function_handler(event)
             .await;
         return event_result;
+    }
+
+    #[test]
+    fn testing_biguint() {
+        let hash = String::from("27d9e601718d704671ab3c3dfcf7fd1dcc329ba2b69fe5e443469beef0ea9bdc");
+        let is = BigUint::from_str_radix(hash.as_str(), 16);
+        let should = BigUint::from_bytes_le(
+            String::from("18025194348382480456338733710662541073828462113497433353157482543816263769052").as_bytes()
+        );
+        assert_eq!(is, should);
     }
 
     // using #[tokio::test] instead of just #[test] to be able to call async

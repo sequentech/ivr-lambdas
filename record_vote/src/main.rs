@@ -13,7 +13,7 @@ use serde_json::{json, Value};
 use serde::{Deserialize, Serialize};
 use num_bigint::BigUint;
 use strand::context::Ctx;
-use strand::backend::num_bigint::{BigintCtx, P2048};
+use strand::backend::num_bigint_sha2::{BigintCtx, P2048};
 use strand::elgamal::PublicKey;
 use chrono::prelude::*;
 use tracing::{event, Level};
@@ -129,10 +129,12 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>) -> Result<Value, Err
         .unwrap();
     event!(Level::DEBUG, auth_token);
 
-    let (cyphertext, plaintext_proof) = public_key.encrypt_and_pok(
+    let (cyphertext, plaintext_proof, debug_str) = public_key.encrypt_and_pok_old_version(
         &vote_encoded,
         &vec![]
     );
+    event!(Level::DEBUG, old_version_debug = debug_str);
+
     let plaintext_proof_struct = PlaintextProof {
         challenge: plaintext_proof.challenge.to_string_radix(10),
         commitment: plaintext_proof.commitment.to_string_radix(10),
@@ -159,7 +161,7 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>) -> Result<Value, Err
 
     let vote_request = VoteRequest {
         vote: encrypted_ballot_str,
-        vote_hash: vote_hash
+        vote_hash: vote_hash.clone()
     };
     let vote_request_str: String = serde_json::to_string(&vote_request)?;
     event!(Level::INFO, vote_request_str);
@@ -181,16 +183,28 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>) -> Result<Value, Err
             .with_header(HeaderName::CONTENT_TYPE, "application/json")?
             .with_body(vote_request_str)
     )?;
-
+    
     let status = response.status();
     event!(Level::INFO, request_response_status = status.to_string());
-
+    
     let body = response.into_body().to_string()?;
     event!(Level::INFO, request_response_body = body);
-
+    
     match status {
         Status::OK => {
-            let ret_value = json!({"body": body});
+            let vote_hash_ssml = String::from(&vote_hash[..8]).chars().fold(
+                String::from(""),
+                |hash_ssml, character| {
+                    format!(
+                        "{}<s><say-as interpret-as=\"verbatim\">{}</say-as></s>",
+                        hash_ssml,
+                        character
+                    )
+                }
+            );
+            let ret_value = json!({
+                "VoteHashStartSSML": &vote_hash_ssml
+            });
             event!(Level::DEBUG, ret_value = ret_value.to_string());
 
             Ok(ret_value)

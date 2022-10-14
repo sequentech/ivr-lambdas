@@ -26,12 +26,11 @@ serde_json = "1.0.85"
 tokio = { version = "1", features = ["macros"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
-strand = { git = "https://github.com/sequentech/strand", rev = "130c3a412823f53e903b79cc76b56412b2a7b5ba" }
-# aes
+strand = { git = "https://github.com/sequentech/strand", rev = "7be08c676faca787bc64a58e086019a4cfd3a93f" }
+num-bigint = { version = "0.4", features = ["rand"] }
 sha2 = "0.9.3"
 hex = "0.4.3"
 serde = "1.0.145"
-num-bigint = { version = "0.4", features = ["rand"] }
 chrono = "0.4.22"
 
 
