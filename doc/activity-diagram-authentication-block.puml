@@ -21,7 +21,7 @@ start
 :AT-1: Welcome;
 repeat :AT-2: Start Login;
     if (AT-3: Repeated loop 3 times?) then (Yes)
-        <<Error>>:AT-4: Error message;
+        <<Error>>:AT-4: Error Message;
         -[#black]-> End Call;
         stop
     else (No)
@@ -31,9 +31,10 @@ repeat :AT-2: Start Login;
             <<ApiCall>>:AT-8: Call Auth API;
         }
     endif
-repeat while (AT-9: Auth success?) is (No) not (Yes)
+backward :AT-9: Auth Error;
+repeat while (AT-10: Did Auth Succeed?) is (No) not (Yes)
 
-:AT-10: Auth success;
-<<Continue>>:AT-11: Continue to <b>B-2</b>;
+:AT-11: Auth Success;
+<<Continue>>:AT-12: Continue to <b>B-2</b>;
 
 @enduml
