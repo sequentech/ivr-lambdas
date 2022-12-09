@@ -1,0 +1,38 @@
+@startuml
+title B-1: Authentication Block
+
+<style>
+activityDiagram {
+  diamond {
+    BackgroundColor #ccf
+  }
+}
+</style>
+
+skinparam activity {
+  BackgroundColor<<Error>> #e85e58
+  BackgroundColor<<ApiCall>> #62e7b2
+  BackgroundColor<<Continue>> #e7eba3
+  BackgroundColor<<Question>> #e7eba3
+}
+
+start
+:AT-1: Welcome;
+repeat :AT-4: Start Login;
+    if (Repeated loop 3 times?) then (Yes)
+        <<Error>>:AT-2: Error message;
+        -[#black]-> End Call;
+        stop
+    else (No)
+        partition "AT-3: Login Process" {
+            :AT-5: Register Membership Id;
+            :AT-6: Register PIN;
+            <<ApiCall>>:AT-7: Call Auth API;
+        }
+    endif
+repeat while (AT-8: Auth success?) is (No) not (Yes)
+
+:AT-9: Auth success;
+<<Continue>>:Continue to <b>B-2</b>;
+
+@enduml

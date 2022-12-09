@@ -1,0 +1,13 @@
+@startuml
+start
+
+skinparam activity {
+  BackgroundColor<<Block>> #78bce8
+}
+
+<<Block>>:B-1: Authentication Block;
+<<Block>>:B-2: Voting Block;
+<<Block>>:B-3: Success Block;
+stop
+
+@enduml
