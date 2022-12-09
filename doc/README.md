@@ -37,13 +37,13 @@ The authentication block contains the following elements:
 - **Positive Result:** Goes to `AT-4: Error Message` element.
 - **Negative Result:** Goes to `AT-5` Login Process block.
 
-### AT-4: Error message
+### AT-4: Error message
 
 - **Element type:** Play Prompt
 - **Spoken text:** `We're sorry, an error occurred. Please try again later. Goodbye.`
 - **On Error:** Ends the call.
 
-### AT-5: Login Process
+### AT-5: Login Process
 
 - **Element type:** Block
 - **Description:** This is block grouping the login process.
@@ -75,7 +75,7 @@ The authentication block contains the following elements:
 - **Restrictions:** maximum 20 digits
 - **On Error:** Goes to `AT-9: Auth Error` element.
 
-### AT-9: Auth Error
+### AT-9: Auth Error
 
 - **Element type:** Play Prompt
 - **Spoken text:** `Authentication unsuccessful. Please try again.`
@@ -88,7 +88,7 @@ The authentication block contains the following elements:
 - **Positive result:** Goes to `AT-11 Auth Success` element.
 - **Negative result:** Goes to `AT-9 Auth Error` element.
 
-### AT-11: Auth Success
+### AT-11: Auth Success
 
 - **Element type:** Play Prompt
 - **Spoken text:** `Great, you are now authenticated..`
