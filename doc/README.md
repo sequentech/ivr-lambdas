@@ -149,6 +149,12 @@ This block contains the following elements:
 - **Timeout:** 15 seconds
 - **On Timeout:** Goes to [VT-6: Voting Error](#vt-9-voting-error) element.
 
+### VT-6: Voting Error
+
+- **Element type:** Play Prompt
+- **Spoken text:** `Sorry, I didn't get a valid answer. Let's try again.`
+- **On Error:** Goes to [VT-3: Error Message](#vt-3-error-message) element.
+
 ### VT-7: Selection Confirmed?
 
 - **Element type:** Conditional Branch
