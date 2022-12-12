@@ -7,7 +7,7 @@ skinparam activity {
 
 <<Block>>:B-1: Authentication Block;
 <<Block>>:B-2: Voting Block;
-<<Block>>:B-3: Success Block;
+<<Block>>:B-3: Casting Block;
 stop
 
 @enduml

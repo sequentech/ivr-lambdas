@@ -11,23 +11,25 @@ activityDiagram {
 
 skinparam activity {
   BackgroundColor<<Error>> #e85e58
-  BackgroundColor<<ApiCall>> #62e7b2
+  BackgroundColor<<ApiCall>> #ecd2a5
   BackgroundColor<<Continue>> #e7eba3
   BackgroundColor<<Question>> #e7eba3
+  BackgroundColor<<UserInput>> #a3e98f
 }
 
 start
 -[#black]-> Call starts;
 :AT-1: Welcome;
-repeat :AT-2: Start Login;
-    if (AT-3: Repeated loop 3 times?) then (Yes)
-        <<Error>>:AT-4: Error Message;
+repeat
+    if (AT-2: Repeated Login 3 Times?) then (Yes)
+        <<Error>>:AT-3: Error Message;
         -[#black]-> End Call;
         stop
     else (No)
-        partition "AT-5: Login Process" {
-            :AT-6: Register Membership Id;
-            :AT-7: Register PIN;
+        partition "AT-4: Login Process" {
+            :AT-5: Start Login;
+            <<UserInput>>:AT-6: Register Membership Id;
+            <<UserInput>>:AT-7: Register PIN;
             <<ApiCall>>:AT-8: Call Auth API;
         }
     endif
@@ -35,6 +37,6 @@ backward :AT-9: Auth Error;
 repeat while (AT-10: Did Auth Succeed?) is (No) not (Yes)
 
 :AT-11: Auth Success;
-<<Continue>>:AT-12: Continue to <b>B-2</b>;
+<<Continue>>:AT-12: Continue to <b>B-2: Voting Block</b>;
 
 @enduml

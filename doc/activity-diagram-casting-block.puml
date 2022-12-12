@@ -1,0 +1,45 @@
+@startuml
+title B-3: Casting Block
+
+<style>
+activityDiagram {
+  diamond {
+    BackgroundColor #ccf
+  }
+}
+</style>
+
+skinparam activity {
+  BackgroundColor<<Error>> #e85e58
+  BackgroundColor<<ApiCall>> #ecd2a5
+  BackgroundColor<<Continue>> #e7eba3
+  BackgroundColor<<Question>> #e7eba3
+  BackgroundColor<<UserInput>> #a3e98f
+}
+
+start
+-[#black]-> Continue from B-2: Voting Block;
+<<ApiCall>>:CT-1: Call Cast Vote API;
+
+if (CT-2: Did Vote Casting Succeed?) then (Yes)
+    :CT-3: Vote Cast Successful;
+    repeat
+        if (CT-4: Repeated Loop 3 Times?) then (Yes)
+            :CT-5: Thanks Goodbye;
+            -[#black]-> End Call;
+            stop
+        else (No)
+            <<UserInput>>:CT-6: Listen Ballot Receipt;
+        endif
+    repeat while (CT-7: Listen Ballot Receipt Again?) is (Yes) not (No)
+else (No)
+    <<Error>>:CT-8: Vote Error;
+    -[#black]-> End Call;
+    stop
+endif
+
+:CT-5: Thanks Goodbye;
+-[#black]-> End Call;
+stop
+
+@enduml

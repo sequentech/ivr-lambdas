@@ -1,0 +1,37 @@
+@startuml
+title B-2: Voting Block
+
+<style>
+activityDiagram {
+  diamond {
+    BackgroundColor #ccf
+  }
+}
+</style>
+
+skinparam activity {
+  BackgroundColor<<Error>> #e85e58
+  BackgroundColor<<ApiCall>> #ecd2a5
+  BackgroundColor<<Continue>> #e7eba3
+  BackgroundColor<<Question>> #e7eba3
+  BackgroundColor<<UserInput>> #a3e98f
+}
+
+start
+-[#black]-> Continue from B-1: Authentication Block;
+:VT-1: Start Voting;
+repeat
+    if (VT-2: Repeated Loop 3 Times?) then (Yes)
+        <<Error>>:VT-3: Error Message;
+        -[#black]-> End Call;
+        stop
+    else (No)
+        <<UserInput>>:VT-4: Choose Vote;
+        <<UserInput>>:VT-5: Confirm Vote;
+    endif
+backward :VT-6: Voting Error;
+repeat while (VT-7: Selection Confirmed?) is (No) not (Yes)
+
+<<Continue>>:VT-8: Continue to <b>B-3: Casting Block</b>;
+
+@enduml
