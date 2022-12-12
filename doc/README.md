@@ -134,9 +134,9 @@ This block contains the following elements:
 - **Spoken text:** `The question to vote is: Do you approve the strike action document? Press 1 to vote Yes. Press 2 to vote No.`
 - **On Press 1**: Record selection and goes to [VT-5: Confirm Vote](#vt-5-confirm-vote)
 - **On Press 2**: Record selection and goes to [VT-5: Confirm Vote](#vt-5-confirm-vote)
-- **On Error:** Goes to [VT-6: Voting Error](#vt-9-voting-error) element.
+- **On Error:** Goes to [VT-6: Voting Error](#vt-6-voting-error) element.
 - **Timeout:** 15 seconds
-- **On Timeout:** Goes to [VT-6: Voting Error](#vt-9-voting-error) element.
+- **On Timeout:** Goes to [VT-6: Voting Error](#vt-6-voting-error) element.
 
 ### VT-5: Confirm Vote
 
@@ -145,9 +145,9 @@ This block contains the following elements:
 - **Spoken text:** `You chose to vote ${vote}. Press 1 to confirm this is what you want to vote. Press 2 to listen again the question and change your vote.`
 - **On Press 1**: Positively confirms selection and goes to [VT-7: Selection Confirmed?](#vt-7-selection-confirmed)
 - **On Press 1**: Negatively confirms selection and goes to [VT-7: Selection Confirmed?](#vt-7-selection-confirmed)
-- **On Error:** Goes to [VT-6: Voting Error](#vt-9-voting-error) element.
+- **On Error:** Goes to [VT-6: Voting Error](#vt-6-voting-error) element.
 - **Timeout:** 15 seconds
-- **On Timeout:** Goes to [VT-6: Voting Error](#vt-9-voting-error) element.
+- **On Timeout:** Goes to [VT-6: Voting Error](#vt-6-voting-error) element.
 
 ### VT-6: Voting Error
 
@@ -160,7 +160,7 @@ This block contains the following elements:
 - **Element type:** Conditional Branch
 - **Condition:** Check if selection was confirmed positively.
 - **Positive Result:** Goes to [VT-8: Continue to B-3: Casting Block](#vt-8-continue-to-b-3-casting-block) element.
-- **Negative Result:** Goes to [VT-6: Voting Error](#vt-9-voting-error) element.
+- **Negative Result:** Goes to [VT-6: Voting Error](#vt-6-voting-error) element.
 
 
 ### VT-8: Continue to B-3: Casting Block
