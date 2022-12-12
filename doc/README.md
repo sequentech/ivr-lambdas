@@ -40,7 +40,7 @@ The authentication block contains the following elements:
 ### AT-4: Login Process
 
 - **Element type:** Block
-- **Description:** This is block grouping the login process.
+- **Description:** This is a block grouping the login process.
 
 ### AT-5: Start Login
 
@@ -143,17 +143,18 @@ This block contains the following elements:
 - **Element type:** Store Option Input
 - **Description:** Delivers an audio message to solicit customer input. Based on response, the contact flow branches. Any invalid response is considered an error.
 - **Spoken text:** `You chose to vote ${vote}. Press 1 to confirm this is what you want to vote. Press 2 to listen again the question and change your vote.`
-- **On Press 1 or 2**: Positively confirms selection and goes to [VT-7: Selection Confirmed?](#vt-7-selection-confirmed)
-- **On Error:** Negatively confirms selection and goes to [VT-7: Selection Confirmed?](#vt-7-selection-confirmed)(#vt-9-voting-error) element.
+- **On Press 1**: Positively confirms selection and goes to [VT-7: Selection Confirmed?](#vt-7-selection-confirmed)
+- **On Press 1**: Negatively confirms selection and goes to [VT-7: Selection Confirmed?](#vt-7-selection-confirmed)
+- **On Error:** Goes to [VT-6: Voting Error](#vt-9-voting-error) element.
 - **Timeout:** 15 seconds
 - **On Timeout:** Goes to [VT-6: Voting Error](#vt-9-voting-error) element.
 
 ### VT-7: Selection Confirmed?
 
 - **Element type:** Conditional Branch
-- **Condition:** Check if selection was confirmed.
-- **Positive Result:** Goes to [VT-8: Error Message](#vt-3-error-message) element.
-- **Negative Result:** Goes to [VT-4: Choose Vote](#vt-4-choose-vote) block.
+- **Condition:** Check if selection was confirmed positively.
+- **Positive Result:** Goes to [VT-8: Continue to B-3: Casting Block](#vt-8-continue-to-b-3-casting-block) element.
+- **Negative Result:** Goes to [VT-6: Voting Error](#vt-9-voting-error) element.
 
 
 ### VT-8: Continue to B-3: Casting Block
@@ -173,7 +174,7 @@ This block contains the following elements:
 ### CT-1: Call Cast Vote API
 
 - **Element type:** Call API
-- **Description:**  Encrypts the vote and calls the Sequent Platform's API to cast the encrypted vote the voter with the authentication token.
+- **Description:**  Encrypts the ballot and calls the Sequent Platform's API to cast the encrypted ballot using the previously obtained authentication token credential.
 - **Timeout:** 15 seconds
 - **On Error or Timeout:** Goes to [CT-8: Vote Error](#ct-8-vote-error) element.
 
@@ -208,16 +209,16 @@ This block contains the following elements:
 - **Element type:** Store Option Input
 - **Description:** Delivers an audio message to solicit customer input. Based on response, the contact flow branches. Any invalid response is considered an error.
 - **Spoken text:** `Your ballot receipt-id is ${ReceiptId}. Press 1 to finish. Press 2 to hear the ballot receipt-id again.`
-- **On Press 1:** Set Listen to Ballot Receipt Again to `false` and goes to [CT-7: Listen Ballot Receipt Again?](#ct-7-listen-ballot-receipt-again)
-- **On Press 2:** Set Listen to Ballot Receipt Again to `true` and goes to [CT-7: Listen Ballot Receipt Again?](#ct-7-listen-ballot-receipt-again)
-- **On Error:** Set Listen to Ballot Receipt Again to `true` and goes to [CT-7: Listen Ballot Receipt Again?](#ct-7-listen-ballot-receipt-again)
+- **On Press 1:** Set ListenToBallotReceiptAgain to `false` and goes to [CT-7: Listen Ballot Receipt Again?](#ct-7-listen-ballot-receipt-again)
+- **On Press 2:** Set ListenToBallotReceiptAgain to `true` and goes to [CT-7: Listen Ballot Receipt Again?](#ct-7-listen-ballot-receipt-again)
+- **On Error:** Set ListenToBallotReceiptAgain to `true` and goes to [CT-7: Listen Ballot Receipt Again?](#ct-7-listen-ballot-receipt-again)
 - **Timeout:** 15 seconds
-- **On Timeout:** Set Listen to Ballot Receipt Again to `true` and goes to [CT-7: Listen Ballot Receipt Again?](#ct-7-listen-ballot-receipt-again)
+- **On Timeout:** Set ListenToBallotReceiptAgain to `true` and goes to [CT-7: Listen Ballot Receipt Again?](#ct-7-listen-ballot-receipt-again)
 
 ### CT-7: Listen Ballot Receipt Again?
 
 - **Element type:** Conditional Branch
-- **Condition:** Check if Listen to Ballot Receipt Again was set to `true`
+- **Condition:** Check if ListenToBallotReceiptAgain was set to `true`.
 - **Positive Result:** Goes to [CT-4: Repeated Loop 3 Times?](#ct-4-repeated-loop-3-times) element.
 - **Negative Result:** Goes to [CT-5: Thanks Goodbye](#ct-5-thanks-goodbye) element.
 
