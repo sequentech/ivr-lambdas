@@ -27,7 +27,7 @@ tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
 
 [dev-dependencies]
-tokio = "1.21.2"
+tokio = "1.24.2"
 httpmock = "0.6.6"
 serial_test = "0.9.0"
 num-bigint = { version = "0.4", features = ["rand"] }
