@@ -31,4 +31,5 @@ tokio = "1.21.2"
 httpmock = "0.6.6"
 serial_test = "0.9.0"
 num-bigint = { version = "0.4", features = ["rand"] }
+num-traits = "0.2.16"
 hex = "0.4.3"

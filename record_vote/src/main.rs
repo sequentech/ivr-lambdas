@@ -148,7 +148,7 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>) -> Result<Value, Err
         choices: vec![
             encrypted_ballot
         ],
-        issue_date: Utc::today().format("%Y/%m/%d").to_string(),
+        issue_date: Utc::now().format("%Y/%m/%d").to_string(),
         proofs: vec![
             plaintext_proof_struct
         ]

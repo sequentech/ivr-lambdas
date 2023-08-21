@@ -5,7 +5,7 @@
   description = "Flake to run rust code";
 
   inputs.rust-overlay.url = "github:oxalica/rust-overlay";
-  inputs.nixpkgs.url = "nixpkgs/nixos-22.05";
+  inputs.nixpkgs.url = "nixpkgs/nixos-22.11";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.flake-compat = {
     url = "github:edolstra/flake-compat";
@@ -22,15 +22,15 @@
         stdenv = pkgs.clangStdenv;
         configureRustTargets = targets : pkgs
           .rust-bin
-          .nightly
-          ."2022-07-05"
+          .stable
+          .latest
           .default
           .override {
               extensions = [ "rust-src" ];
                ${if (builtins.length targets) > 0 then "targets" else null} = targets;
 
           };
-        rust-system  = configureRustTargets [];
+        rust-system  = configureRustTargets ["aarch64-unknown-linux-gnu"];
         # see https://github.com/NixOS/nixpkgs/blob/master/doc/languages-frameworks/rust.section.md#importing-a-cargolock-file-importing-a-cargolock-file
         cargoPatches = {
             cargoLock = let
@@ -73,11 +73,13 @@
               pkgs.bash
               pkgs.reuse
               pkgs.cargo-deny
+              pkgs.cargo-lambda
               pkgs.clippy
               pkgs.pkg-config
               pkgs.openssl
               pkgs.zig
-            ]; 
+              rust-system
+            ];
         };
 
       }
