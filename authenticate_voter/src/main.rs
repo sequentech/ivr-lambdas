@@ -30,8 +30,8 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>)
     // Example base_url: 
     // https://clientname.example.com/iam/api/auth-event/{{election_id}}/authenticate/
     // Note that {{election_id}} will be substituted with the election id
-    let base_url = env::var("BASE_URL")?;
-    event!(Level::INFO, base_url);
+    let login_url_template = env::var("LOGIN_URL")?;
+    event!(Level::INFO, login_url_template);
 
     // This is the authentication extra field name for the user id
     let user_id_key = env::var("USER_ID_KEY")?;
@@ -70,7 +70,7 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>)
     let body: String = serde_json::to_string(&data)?;
 
     let client = Client::new();
-    let login_url = base_url.replace("{{election_id}}", election_id);
+    let login_url = login_url_template.replace("{{election_id}}", election_id);
     event!(Level::DEBUG, request_url = login_url, request_body = body);
     let response = client.request(
         Request::builder(
@@ -199,7 +199,7 @@ mod tests {
         // Create a mock on the server.
         let auth_voter_path = auth_voter_path
             .unwrap_or("/authentication-success");
-        let base_url = server.base_url() + auth_voter_path;
+        let login_url = server.base_url() + auth_voter_path;
         let auth_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/authentication-success")
@@ -213,7 +213,7 @@ mod tests {
             ("TRACING_LEVEL", "debug"),
             ("USER_ID_KEY", "user-id"),
             ("VOTER_PIN_KEY", "code"),
-            ("BASE_URL", base_url.as_str())
+            ("LOGIN_URL", login_url.as_str())
         ]);
         let override_env_vars_val = override_env_vars
             .unwrap_or(Default::default());
@@ -329,16 +329,16 @@ mod tests {
             .expect_err("authentication succeeded when it should have failed");
     }
 
-    // should panic with BASE_URL env var not set
+    // should panic with LOGIN_URL env var not set
     #[tokio::test]
     #[should_panic]
     #[serial]
-    async fn unset_base_url_env_var() {
+    async fn unset_login_url_env_var() {
         let server = MockServer::start();
         init(
             &server,
             Some(HashMap::from([
-                ("BASE_URL", "")
+                ("LOGIN_URL", "")
             ])),
             None,
             include_str!("../test/mock_backend/authentication_success.json")

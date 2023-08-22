@@ -55,9 +55,45 @@ pub struct VoteRequest {
     vote_hash: String
 }
 
-fn parse_public_key(public_key_string: &String) -> Result<PublicKey<BigintCtx::<P2048>>, Error> {
+fn get_public_key(client: &Client, get_election_url: &String) 
+-> Result<PublicKey<BigintCtx::<P2048>>, Error>
+{
+    event!(
+        Level::DEBUG,
+        get_election_url = get_election_url,
+    );
+    let response = client.request(
+        Request::builder(Method::GET, get_election_url.parse()?).build()
+    )?;
+
+    let status = response.status();
+    event!(Level::INFO, request_response_status = status.to_string());
+    
+    let body = response.into_body().to_string()?;
+    event!(Level::INFO, request_response_body = body);
+
+    if ! status.is_successful() {
+        return Err("invalid-status".into());
+    }
+
+    let body_value: Value = serde_json::from_str(&body)?;
+    if !body_value.is_object()
+        || !body_value.as_object().unwrap()["payload"].is_object()
+        || !body_value.as_object().unwrap()["payload"].as_object().unwrap()["pks"].is_string()
+
+    {
+        return Err("invalid-election-body".into());
+    }
+
+    let public_key_string = body_value
+        .as_object()
+        .unwrap()["payload"]
+        .as_object()
+        .unwrap()["pks"]
+        .to_string();
+
     let public_key_strings: PublicKeyStrings = 
-        serde_json::from_str(public_key_string)?;
+        serde_json::from_str(&public_key_string)?;
     
     let context = BigintCtx::<P2048>::new();
     return Ok(
@@ -95,44 +131,68 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>) -> Result<Value, Err
         connect_context = serde_json::to_string(&connect_context)?
     );
 
-    let record_vote_url = env::var("RECORD_VOTE_URL")?;
-    event!(Level::INFO, record_vote_url);
+    // Example RECORD_VOTE_URL, where votes will be posted: 
+    // https://clientname.example.com/elections/api/election/{{election_id}}/voter/{{voter_id}}
+    // Note that:
+    // - {{election_id}} will be substituted with the election id
+    // - {{voter_id}} will be substituted with the voter id
+    let record_vote_url_template = env::var("RECORD_VOTE_URL")?;
+    event!(Level::INFO, record_vote_url_template);
+
+    // Example GET_ELECTION_URL, used to fetch election config:
+    // https://clientname.example.com/elections/api/election/{{election_id}}
+    // Note that {{election_id}} will be substituted with the election id
+    let get_election_url_template = env::var("GET_ELECTION_URL")?;
+    event!(Level::INFO, get_election_url_template);
 
     let public_key_str = env::var("ELECTION_PUBLIC_KEY")?;
     event!(Level::INFO, public_key_str);
     
     let vote_encoding_array_str = env::var("VOTE_ENCODING_ARRAY")?;
     event!(Level::INFO, vote_encoding_array_str);
-    
-    let public_key = parse_public_key(&public_key_str)?;
-    let vote_encoding_array: HashMap<String, u32> = 
-        serde_json::from_str(&vote_encoding_array_str)?;
-
-    let context = BigintCtx::<P2048>::new();
 
     let vote_text: &String = connect_event
         .details
         .contact_data
         .attributes
         .get("Vote")
-        .unwrap();
+        .ok_or(String::from("Vote contact data attribute missing"))?;
     event!(Level::DEBUG, vote_text);
-    
-    
-    let vote_int: &u32 = vote_encoding_array.get(vote_text).ok_or("")?;
-    let vote_encoded = context.encode(&BigUint::from(*vote_int))?;
+
     let auth_token: &String = connect_event
         .details
         .contact_data
         .attributes
         .get("AuthToken")
-        .unwrap();
+        .ok_or(String::from("AuthToken contact data attribute missing"))?;
     event!(Level::DEBUG, auth_token);
 
-    let (cyphertext, plaintext_proof, debug_str) = public_key.encrypt_and_pok_old_version(
-        &vote_encoded,
-        &vec![]
-    );
+    let election_id: &String = connect_event
+        .details
+        .contact_data
+        .attributes
+        .get("ElectionId")
+        .ok_or(String::from("ElectionId contact data attribute missing"))?;
+    event!(Level::DEBUG, election_id);
+
+    let get_election_url = get_election_url_template
+        .replace("{{election_id}}", election_id);
+
+    let client = Client::new();
+    let public_key = get_public_key(&client, &get_election_url)?;
+    let vote_encoding_array: HashMap<String, u32> = 
+        serde_json::from_str(&vote_encoding_array_str)?;
+
+    let context = BigintCtx::<P2048>::new();
+    
+    let vote_int: &u32 = vote_encoding_array.get(vote_text).ok_or("")?;
+    let vote_encoded = context.encode(&BigUint::from(*vote_int))?;
+
+    let (cyphertext, plaintext_proof, debug_str) = public_key
+        .encrypt_and_pok_old_version(
+            &vote_encoded,
+            &vec![]
+        );
     event!(Level::DEBUG, old_version_debug = debug_str);
 
     let plaintext_proof_struct = PlaintextProof {
@@ -169,16 +229,19 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>) -> Result<Value, Err
     let voter_id = get_voter_id(auth_token)?;
     event!(Level::INFO, voter_id);
 
-    let client = Client::new();
-    let request_url = record_vote_url + &voter_id;
+    let record_vote_url = record_vote_url_template
+        .replace("{{election_id}}", election_id)
+        .replace("{{voter_id}}", &voter_id);
+    event!(Level::DEBUG, record_vote_url);
+
     event!(
         Level::DEBUG,
-        request_url = request_url,
+        record_vote_url = record_vote_url,
         request_authorization_header = auth_token,
         request_body = vote_request_str
     );
     let response = client.request(
-        Request::builder(Method::POST, request_url.parse()?)
+        Request::builder(Method::POST, record_vote_url.parse()?)
             .with_header(HeaderName::AUTHORIZATION, auth_token.as_str())?
             .with_header(HeaderName::CONTENT_TYPE, "application/json")?
             .with_body(vote_request_str)
