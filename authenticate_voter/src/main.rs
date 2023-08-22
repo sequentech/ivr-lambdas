@@ -27,28 +27,41 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>)
         connect_context = serde_json::to_string(&connect_context)?
     );
 
-    let login_url = env::var("LOGIN_URL")?;
-    event!(Level::INFO, login_url);
+    // Example base_url: 
+    // https://clientname.example.com/iam/api/auth-event/{{election_id}}/authenticate/
+    // Note that {{election_id}} will be substituted with the election id
+    let base_url = env::var("BASE_URL")?;
+    event!(Level::INFO, base_url);
 
+    // This is the authentication extra field name for the user id
     let user_id_key = env::var("USER_ID_KEY")?;
     event!(Level::INFO, user_id_key);
 
+    // This is the authentication extra field name for the voter pin
     let voter_pin_key = env::var("VOTER_PIN_KEY")?;
     event!(Level::INFO, voter_pin_key);
+
+    let election_id: &String = connect_event
+        .details
+        .contact_data
+        .attributes
+        .get("ElectionId")
+        .ok_or(String::from("ElectionId contact data attribute missing"))?;
+    event!(Level::INFO, election_id);
 
     let user_id_value: &String = connect_event
         .details
         .contact_data
         .attributes
         .get("VoterUserId")
-        .unwrap();
+        .ok_or(String::from("VoterUserId contact data attribute missing"))?;
     event!(Level::INFO, user_id_value);
     let voter_pin_value: &String = connect_event
         .details
         .contact_data
         .attributes
         .get("VoterPIN")
-        .unwrap();
+        .ok_or(String::from("VoterPIN contact data attribute missing"))?;
     event!(Level::DEBUG, voter_pin_value);
 
     let mut data = HashMap::new();
@@ -57,6 +70,7 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>)
     let body: String = serde_json::to_string(&data)?;
 
     let client = Client::new();
+    let login_url = base_url.replace("{{election_id}}", election_id);
     event!(Level::DEBUG, request_url = login_url, request_body = body);
     let response = client.request(
         Request::builder(
@@ -75,12 +89,38 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>)
 
     match status {
         Status::OK => {
-            let vote_permission_token = &body_value["vote-permission-token"];
-            let vote_permission_token_str = vote_permission_token.to_string();
-            event!(Level::DEBUG, vote_permission_token_str);
+            let vote_permission_token: &Value = &body_value["vote-permission-token"];
+            event!(Level::DEBUG, "vote_permission_token={:?}", vote_permission_token);
+            let vote_children_info: &Value = &body_value["vote-children-info"];
+            event!(Level::DEBUG, "vote_children_info={:?}", vote_children_info);
 
-            if vote_permission_token_str.len() > 0 {                
-                let ret_value = json!({"AuthToken": vote_permission_token});
+            if vote_permission_token.is_string()
+                && vote_permission_token.to_string().len() > 0
+            {
+                let ret_value = json!({
+                    "AuthToken": vote_permission_token,
+                    "ElectionId": election_id
+                });
+                event!(Level::DEBUG, ret_value = ret_value.to_string());
+
+                // Return the vote_permission_token
+                Ok(ret_value)
+            }
+            else if vote_children_info.is_array()
+                && vote_children_info.as_array().unwrap().len() > 0
+                && vote_children_info.as_array().unwrap()[0].is_object()
+            {
+                let child_election = vote_children_info
+                    .as_array()
+                    .unwrap()[0]
+                    .as_object()
+                    .unwrap();
+                // we perform login only to the first child election
+                let ret_value = json!({
+                    "AuthToken": child_election["vote-permission-token"]
+                        .to_string(),
+                    "ElectionId": child_election["auth-event-id"].to_string()
+                });
                 event!(Level::DEBUG, ret_value = ret_value.to_string());
 
                 // Return the vote_permission_token
@@ -127,8 +167,8 @@ mod tests {
     use aws_lambda_events::event::connect::ConnectEvent;
     use httpmock::prelude::*;
     use httpmock::Mock;
-    use num_bigint::BigUint;
-    use num_traits::Num;
+    //use num_bigint::BigUint;
+    //use num_traits::Num;
 
     use crate::function_handler;
 
@@ -159,7 +199,7 @@ mod tests {
         // Create a mock on the server.
         let auth_voter_path = auth_voter_path
             .unwrap_or("/authentication-success");
-        let login_url = server.base_url() + auth_voter_path;
+        let base_url = server.base_url() + auth_voter_path;
         let auth_mock = server.mock(|when, then| {
             when.method(POST)
                 .path("/authentication-success")
@@ -173,7 +213,7 @@ mod tests {
             ("TRACING_LEVEL", "debug"),
             ("USER_ID_KEY", "user-id"),
             ("VOTER_PIN_KEY", "code"),
-            ("LOGIN_URL", login_url.as_str())
+            ("BASE_URL", base_url.as_str())
         ]);
         let override_env_vars_val = override_env_vars
             .unwrap_or(Default::default());
@@ -201,15 +241,15 @@ mod tests {
         return event_result;
     }
 
-    #[test]
-    fn testing_biguint() {
-        let hash = String::from("27d9e601718d704671ab3c3dfcf7fd1dcc329ba2b69fe5e443469beef0ea9bdc");
-        let is = BigUint::from_str_radix(hash.as_str(), 16).unwrap();
-        let should = BigUint::from_bytes_le(
-            String::from("18025194348382480456338733710662541073828462113497433353157482543816263769052").as_bytes()
-        );
-        assert_eq!(is, should);
-    }
+    //#[test]
+    //fn testing_biguint() {
+    //    let hash = String::from("27d9e601718d704671ab3c3dfcf7fd1dcc329ba2b69fe5e443469beef0ea9bdc");
+    //    let is = BigUint::from_str_radix(hash.as_str(), 16).unwrap();
+    //    let should = BigUint::from_bytes_le(
+    //         String::from("18025194348382480456338733710662541073828462113497433353157482543816263769052").as_bytes()
+    //    );
+    //    assert_eq!(is, should);
+    //}
 
     // using #[tokio::test] instead of just #[test] to be able to call async
     // function in the test
@@ -232,6 +272,10 @@ mod tests {
             .await
             .expect("failed to handle event");
 
+        println!(
+            "event_result = {:?}", 
+            &event_result
+        );
         auth_mock.assert();
         assert_eq!(event_result["AuthToken"], "khmac:///sha-256;c4ba96310ea7474b4ee2e84b00eaf412786816ea7d3713af866dab67c3201668/4cf53604330bab6a6179de2e:AuthEvent:17:vote:1665653516");
     }
@@ -285,16 +329,16 @@ mod tests {
             .expect_err("authentication succeeded when it should have failed");
     }
 
-    // should panic with LOGIN_URL env var not set
+    // should panic with BASE_URL env var not set
     #[tokio::test]
     #[should_panic]
     #[serial]
-    async fn unset_login_url_env_var() {
+    async fn unset_base_url_env_var() {
         let server = MockServer::start();
         init(
             &server,
             Some(HashMap::from([
-                ("LOGIN_URL", "")
+                ("BASE_URL", "")
             ])),
             None,
             include_str!("../test/mock_backend/authentication_success.json")

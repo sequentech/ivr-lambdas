@@ -21,7 +21,7 @@
 		"jnoortheen.nix-ide",
 		"rust-lang.rust-analyzer",
 		"yzhang.markdown-all-in-one",
-		"bungcip.better-toml",
+		"tamasfe.even-better-toml",
 		"vadimcn.vscode-lldb"
 	]
   }
