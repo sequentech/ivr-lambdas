@@ -145,9 +145,6 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>) -> Result<Value, Err
     let get_election_url_template = env::var("GET_ELECTION_URL")?;
     event!(Level::INFO, get_election_url_template);
 
-    let public_key_str = env::var("ELECTION_PUBLIC_KEY")?;
-    event!(Level::INFO, public_key_str);
-    
     let vote_encoding_array_str = env::var("VOTE_ENCODING_ARRAY")?;
     event!(Level::INFO, vote_encoding_array_str);
 
