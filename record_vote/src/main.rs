@@ -90,15 +90,23 @@ fn get_public_key(client: &Client, get_election_url: &String)
         .unwrap()["payload"]
         .as_object()
         .unwrap()["pks"]
-        .to_string();
+        .to_string()
+        .replace("\\", "");
+    // strip the initial and last chars.. (they are unneeded doble quotes)
+    let public_key_string = &public_key_string[1..public_key_string.len()-1];
+    event!(Level::DEBUG, "public_key_string='{}'", public_key_string);
 
-    let public_key_strings: PublicKeyStrings = 
+    let public_key_list: Vec<PublicKeyStrings> = 
         serde_json::from_str(&public_key_string)?;
+    if public_key_list.len() != 1 {
+        return Err("more-than-one-public-key".into());
+    }
+    let public_key_obj = &public_key_list[0];
     
     let context = BigintCtx::<P2048>::new();
     return Ok(
         PublicKey::from_element(
-            &context.element_from_string_radix(&public_key_strings.y, 10)?,
+            &context.element_from_string_radix(&public_key_obj.y, 10)?,
             &context
         )
     );

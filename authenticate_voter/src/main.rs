@@ -33,6 +33,11 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>)
     let login_url_template = env::var("LOGIN_URL")?;
     event!(Level::INFO, login_url_template);
 
+    // If election id is not provided by the caller, we will use this one 
+    // instead
+    let default_election_id_result = env::var("DEFAULT_ELECTION_ID");
+    event!(Level::INFO, "{:?}", default_election_id_result);
+
     // This is the authentication extra field name for the user id
     let user_id_key = env::var("USER_ID_KEY")?;
     event!(Level::INFO, user_id_key);
@@ -41,12 +46,20 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>)
     let voter_pin_key = env::var("VOTER_PIN_KEY")?;
     event!(Level::INFO, voter_pin_key);
 
-    let election_id: &String = connect_event
+    let election_id_result = connect_event
         .details
         .contact_data
         .attributes
-        .get("ElectionId")
-        .ok_or(String::from("ElectionId contact data attribute missing"))?;
+        .get("ElectionId");
+    let election_id: String = match (election_id_result, default_election_id_result)
+    {
+        (Some(election_id), _) => election_id.clone(),
+        (_, Ok(default_election_id)) => default_election_id,
+        _ => return Err(
+            "ElectionId contact data attribute missing and default election id
+            env var missing too".into()
+        ),
+    };
     event!(Level::INFO, election_id);
 
     let user_id_value: &String = connect_event
@@ -70,7 +83,7 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>)
     let body: String = serde_json::to_string(&data)?;
 
     let client = Client::new();
-    let login_url = login_url_template.replace("{{election_id}}", election_id);
+    let login_url = login_url_template.replace("{{election_id}}", &election_id);
     event!(Level::DEBUG, request_url = login_url, request_body = body);
     let response = client.request(
         Request::builder(
