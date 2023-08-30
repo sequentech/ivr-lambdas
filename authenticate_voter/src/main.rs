@@ -125,13 +125,24 @@ async fn function_handler(event: LambdaEvent<ConnectEvent>)
             {
                 let child_election = vote_children_info
                     .as_array()
-                    .unwrap()[0]
+                    .unwrap()
+                    .iter()
+                    // filter null tokens
+                    .filter(|child_info| {
+                        child_info
+                            .as_object()
+                            .unwrap()["vote-permission-token"]
+                            .is_string()
+                    })
+                    .collect::<Vec<&Value>>()[0]
                     .as_object()
                     .unwrap();
                 // we perform login only to the first child election
                 let ret_value = json!({
-                    "AuthToken": child_election["vote-permission-token"]
-                        .to_string(),
+                    "AuthToken":
+                        child_election["vote-permission-token"]
+                            .as_str()
+                            .unwrap(),
                     "ElectionId": child_election["auth-event-id"].to_string()
                 });
                 event!(Level::DEBUG, ret_value = ret_value.to_string());
